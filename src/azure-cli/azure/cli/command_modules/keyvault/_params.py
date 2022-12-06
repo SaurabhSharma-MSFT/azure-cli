@@ -156,6 +156,11 @@ def load_arguments(self, _):
         c.argument('default_action', arg_type=get_enum_type(NetworkRuleAction),
                    help='Default action to apply when no rule matches.')
 
+    with self.argument_context('keyvault check-name') as c:
+        c.argument('name', options_list=['--name', '-n'],
+                   help='The name of the HSM within the specified resource group')
+        c.argument('resource_type', arg_type=get_enum_type(['hsm']), help='Type of resource. ')
+
     for item in ['show', 'delete', 'create']:
         with self.argument_context('keyvault {}'.format(item)) as c:
             c.argument('hsm_name', mgmt_plane_hsm_name_type)
@@ -535,7 +540,7 @@ def load_arguments(self, _):
 
     # region KeyVault Secret
     with self.argument_context('keyvault secret set') as c:
-        c.argument('content_type', options_list=['--description'],
+        c.argument('content_type', options_list=['--description', '--content-type'],
                    help='Description of the secret contents (e.g. password, connection string, etc)')
         c.attributes_argument('secret', SecretAttributes, create=True)
 

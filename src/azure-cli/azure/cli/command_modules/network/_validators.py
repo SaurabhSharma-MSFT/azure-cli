@@ -321,29 +321,6 @@ def validate_user_assigned_identity(cmd, namespace):
         )
 
 
-def validate_express_route_peering(cmd, namespace):
-    from msrestazure.tools import is_valid_resource_id, resource_id
-    circuit = namespace.circuit_name
-    peering = namespace.peering
-
-    if not circuit and not peering:
-        return
-
-    usage_error = CLIError('usage error: --peering ID | --peering NAME --circuit-name CIRCUIT')
-    if not is_valid_resource_id(peering):
-        namespace.peering = resource_id(
-            subscription=get_subscription_id(cmd.cli_ctx),
-            resource_group=namespace.resource_group_name,
-            namespace='Microsoft.Network',
-            type='expressRouteCircuits',
-            name=circuit,
-            child_type_1='peerings',
-            child_name_1=peering
-        )
-    elif circuit:
-        raise usage_error
-
-
 def validate_express_route_port(cmd, namespace):
     from msrestazure.tools import is_valid_resource_id, resource_id
     if namespace.express_route_port and not is_valid_resource_id(namespace.express_route_port):
@@ -365,18 +342,6 @@ def validate_virtul_network_gateway(cmd, namespace):
             namespace='Microsoft.Network',
             type='virtualNetworkGateways',
             name=namespace.hosted_gateway
-        )
-
-
-def validate_virtual_hub(cmd, namespace):
-    from msrestazure.tools import is_valid_resource_id, resource_id
-    if namespace.virtual_hub and not is_valid_resource_id(namespace.virtual_hub):
-        namespace.virtual_hub = resource_id(
-            subscription=get_subscription_id(cmd.cli_ctx),
-            resource_group=namespace.resource_group_name,
-            namespace='Microsoft.Network',
-            type='virtualHubs',
-            name=namespace.virtual_hub
         )
 
 
@@ -482,7 +447,7 @@ def validate_ip_tags(cmd, namespace):
         ip_tags = []
         for item in namespace.ip_tags:
             tag_type, tag_value = item.split('=', 1)
-            ip_tags.append(IpTag(ip_tag_type=tag_type, tag=tag_value))
+            ip_tags.append({"ip_tag_type": tag_type, "tag": tag_value})
         namespace.ip_tags = ip_tags
 
 
@@ -960,11 +925,6 @@ def process_ag_create_namespace(cmd, namespace):
     validate_user_assigned_identity(cmd, namespace)
 
 
-def process_auth_create_namespace(cmd, namespace):
-    ExpressRouteCircuitAuthorization = cmd.get_models('ExpressRouteCircuitAuthorization')
-    namespace.authorization_parameters = ExpressRouteCircuitAuthorization()
-
-
 def process_lb_create_namespace(cmd, namespace):
     get_default_location_from_resource_group(cmd, namespace)
     validate_tags(namespace)
@@ -1285,6 +1245,7 @@ def process_nw_cm_v1_create_namespace(cmd, namespace):
 
 
 def process_nw_cm_v2_create_namespace(cmd, namespace):
+    validate_tags(namespace)
     if namespace.location is None:  # location is None only occurs in creating a V2 connection monitor
         endpoint_source_resource_id = namespace.endpoint_source_resource_id
 
@@ -1825,14 +1786,6 @@ def process_lb_outbound_rule_namespace(cmd, namespace):
         if not is_valid_resource_id(namespace.backend_address_pool):
             namespace.backend_address_pool = _generate_lb_subproperty_id(
                 cmd.cli_ctx, namespace, 'backendAddressPools', namespace.backend_address_pool)
-
-
-def process_list_delegations_namespace(cmd, namespace):
-    if not namespace.resource_group_name and not namespace.location:
-        raise CLIError('usage error: --location LOCATION | --resource-group NAME [--location LOCATION]')
-
-    if not namespace.location:
-        get_default_location_from_resource_group(cmd, namespace)
 
 
 def validate_ag_address_pools(cmd, namespace):
