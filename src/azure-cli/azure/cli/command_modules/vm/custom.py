@@ -919,8 +919,17 @@ def create_vm(cmd, vm_name, resource_group_name, image=None, size='Standard_DS1_
             'Please note that the default public IP used for VM creation will be changed from Basic to Standard '
             'in the future.')
 
-    subscription_id = get_subscription_id(cmd.cli_ctx)
+    # Breaking Change Warning, change image alias
+    if image:
+        if image == "UbuntuLTS":
+            logger.warning('Consider using the "Ubuntu2204" alias. On April 30, 2023,'
+                           'the image deployed by the "UbuntuLTS" alias reaches its end of life. '
+                           'The "UbuntuLTS" will be removed with the breaking change release of Fall 2023.')
+        if image in ["RHEL", "Debian", "CentOS", "Flatcar"]:
+            logger.warning('Consider using the image alias including the version of the distribution you want to use. '
+                           'For example: please use Debian11 instead of Debian')
 
+    subscription_id = get_subscription_id(cmd.cli_ctx)
     if os_disk_encryption_set is not None and not is_valid_resource_id(os_disk_encryption_set):
         os_disk_encryption_set = resource_id(
             subscription=subscription_id, resource_group=resource_group_name,
@@ -1424,14 +1433,14 @@ def list_vm_ip_addresses(cmd, resource_group_name=None, vm_name=None):
                     public_ip_addr_info = {
                         'id': public_ip_address['id'],
                         'name': public_ip_address['name'],
-                        'ipAddress': public_ip_address['ipAddress'],
-                        'ipAllocationMethod': public_ip_address['publicIPAllocationMethod']
+                        'ipAddress': public_ip_address.get('ipAddress', None),
+                        'ipAllocationMethod': public_ip_address.get('publicIPAllocationMethod', None)
                     }
 
                     try:
                         public_ip_addr_info['zone'] = public_ip_address['zones'][0] \
                             if 'zones' in public_ip_address else None
-                    except (AttributeError, IndexError, TypeError):
+                    except (KeyError, IndexError, TypeError):
                         pass
 
                     network_info['publicIpAddresses'].append(public_ip_addr_info)
@@ -3128,7 +3137,6 @@ def create_vmss(cmd, vmss_name, resource_group_name, image=None,
                 os_disk_delete_option=None, data_disk_delete_option=None, regular_priority_count=None,
                 regular_priority_percentage=None, disk_controller_type=None, nat_rule_name=None,
                 enable_osimage_notification=None, max_surge=None):
-
     from azure.cli.core.commands.client_factory import get_subscription_id
     from azure.cli.core.util import random_string, hash_string
     from azure.cli.core.commands.arm import ArmTemplateBuilder
@@ -3139,6 +3147,16 @@ def create_vmss(cmd, vmss_name, resource_group_name, image=None,
                                                                 build_application_gateway_resource,
                                                                 build_msi_role_assignment, build_nsg_resource,
                                                                 build_nat_rule_v2)
+
+    # Breaking Change Warning, change image alias
+    if image:
+        if image == "UbuntuLTS":
+            logger.warning('Consider using the "Ubuntu2204" alias. On April 30, 2023,'
+                           'the image deployed by the "UbuntuLTS" alias reaches its end of life. '
+                           'The "UbuntuLTS" will be removed with the breaking change release of Fall 2023.')
+        if image in ["RHEL", "Debian", "CentOS", "Flatcar"]:
+            logger.warning('Consider using the image alias including the version of the distribution you want to use. '
+                           'For example: please use Debian11 instead of Debian')
 
     # The default load balancer will be expected to be changed from Basic to Standard.
     # In order to avoid breaking change which has a big impact to users,
@@ -4462,14 +4480,6 @@ def remove_vmss_identity(cmd, resource_group_name, vmss_name, identities=None):
 # endregion
 
 
-# region image galleries
-def list_image_galleries(cmd, resource_group_name=None):
-    client = _compute_client_factory(cmd.cli_ctx)
-    if resource_group_name:
-        return client.galleries.list_by_resource_group(resource_group_name)
-    return client.galleries.list()
-
-
 # from azure.mgmt.compute.models import Gallery, SharingProfile
 def update_image_galleries(cmd, resource_group_name, gallery_name, gallery, permissions=None,
                            soft_delete=None, publisher_uri=None, publisher_contact=None, eula=None,
@@ -5112,12 +5122,6 @@ def create_disk_access(cmd, client, resource_group_name, disk_access_name, locat
     disk_access = DiskAccess(location=location, tags=tags)
     return sdk_no_wait(no_wait, client.begin_create_or_update,
                        resource_group_name, disk_access_name, disk_access)
-
-
-def list_disk_accesses(cmd, client, resource_group_name=None):
-    if resource_group_name:
-        return client.list_by_resource_group(resource_group_name)
-    return client.list()
 
 
 def set_disk_access(cmd, client, parameters, resource_group_name, disk_access_name, tags=None, no_wait=False):
