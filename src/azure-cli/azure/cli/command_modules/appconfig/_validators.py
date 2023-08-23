@@ -238,12 +238,12 @@ def validate_secret_identifier(namespace):
 
 
 def validate_key(namespace):
-    if namespace.key:
-        input_key = str(namespace.key).lower()
-        if input_key == '.' or input_key == '..' or '%' in input_key:
-            raise InvalidArgumentValueError("Key is invalid. Key cannot be a '.' or '..', or contain the '%' character.")
-    else:
+    if not namespace.key or str(namespace.key).isspace():
         raise RequiredArgumentMissingError("Key cannot be empty.")
+
+    input_key = str(namespace.key).lower()
+    if input_key == '.' or input_key == '..' or '%' in input_key:
+        raise InvalidArgumentValueError("Key is invalid. Key cannot be a '.' or '..', or contain the '%' character.")
 
 
 def validate_resolve_keyvault(namespace):
@@ -354,3 +354,17 @@ def validate_snapshot_filters(namespace):
                 raise InvalidArgumentValueError("Parameter must be an escaped JSON object. {} is not a valid JSON object.".format(filter_param))
 
         namespace.filters = filter_parameters
+
+
+def validate_snapshot_export(namespace):
+    if namespace.snapshot:
+        if any([namespace.key, namespace.label, namespace.skip_features, namespace.skip_keyvault]):
+            raise MutuallyExclusiveArgumentError("'--snapshot' cannot be specified with '--key',  '--label', '--skip-keyvault' or '--skip-features' arguments.")
+
+
+def validate_snapshot_import(namespace):
+    if namespace.src_snapshot:
+        if namespace.source != 'appconfig':
+            raise InvalidArgumentValueError("--src-snapshot is only applicable when importing from a configuration store.")
+        if any([namespace.src_key, namespace.src_label, namespace.skip_features]):
+            raise MutuallyExclusiveArgumentError("'--src-snapshot' cannot be specified with '--src-key', '--src-label', or '--skip-features' arguments.")
